@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Farming Dashboard</title>
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/acreOS.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fas fa-leaf"></i>
+                <span>SmartFarm</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#dashboard" class="nav-link active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a></li>
+                <li data-user-only="true"><a href="#sensors" class="nav-link" data-section="sensors">
+                    <i class="fas fa-thermometer-half"></i> Sensors
+                </a></li>
+                <li data-user-only="true"><a href="#pump" class="nav-link" data-section="pump">
+                    <i class="fas fa-water"></i> Pump Control
+                </a></li>
+                <li><a href="#predictions" class="nav-link" data-section="predictions">
+                    <i class="fas fa-brain"></i> AI Predictions
+                </a></li>
+                <li data-admin-only="true"><a href="#map" class="nav-link" data-section="map">
+                    <i class="fas fa-map-location-dot"></i> Farm Map
+                </a></li>
+                <li data-admin-only="true"><a href="#admin" class="nav-link" data-section="admin">
+                    <i class="fas fa-cogs"></i> Admin Panel
+                </a></li>
+            </ul>
+            <div class="user-info">
+                <span id="username">User</span>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <div class="section-header">
+                    <h1>Dashboard</h1>
+                    <button id="refresh-btn" class="btn btn-primary">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="cards-grid" data-user-only="true">
+                    <div class="card sensor-card">
+                        <div class="card-icon"><i class="fas fa-water-droplets"></i></div>
+                        <h3>Soil Moisture</h3>
+                        <p class="value" id="soil-moisture">--</p>
+                        <p class="unit">%</p>
+                    </div>
+                    <div class="card sensor-card">
+                        <div class="card-icon"><i class="fas fa-thermometer-half"></i></div>
+                        <h3>Temperature</h3>
+                        <p class="value" id="temperature">--</p>
+                        <p class="unit">°C</p>
+                    </div>
+                    <div class="card sensor-card">
+                        <div class="card-icon"><i class="fas fa-cloud"></i></div>
+                        <h3>Humidity</h3>
+                        <p class="value" id="humidity">--</p>
+                        <p class="unit">%</p>
+                    </div>
+                    <div class="card sensor-card">
+                        <div class="card-icon"><i class="fas fa-flask"></i></div>
+                        <h3>pH Level</h3>
+                        <p class="value" id="ph-level">--</p>
+                        <p class="unit">pH</p>
+                    </div>
+                </div>
+
+                <div class="weather-panel">
+                    <div class="card weather-hero">
+                        <div class="weather-header">
+                            <div>
+                                <h3>Weather Intelligence</h3>
+                                <p id="weather-location">Checking farm location...</p>
+                            </div>
+                            <span class="weather-badge" id="weather-api-status">Weather API: checking</span>
+                        </div>
+
+                        <div class="weather-stat-grid">
+                            <div class="weather-stat">
+                                <span class="weather-label">Live Temperature</span>
+                                <strong id="weather-live-temp">--</strong>
+                                <span class="weather-meta" id="weather-condition">Waiting for weather data</span>
+                            </div>
+                            <div class="weather-stat">
+                                <span class="weather-label">AI Rainfall Outlook</span>
+                                <strong id="weather-rain-chance">--</strong>
+                                <span class="weather-meta" id="weather-rain-note">Confidence: --</span>
+                            </div>
+                            <div class="weather-stat">
+                                <span class="weather-label">Predicted Temperature</span>
+                                <strong id="weather-forecast-temp">--</strong>
+                                <span class="weather-meta" id="weather-forecast-time">Next forecast: --</span>
+                            </div>
+                            <div class="weather-stat">
+                                <span class="weather-label">Wind / Humidity</span>
+                                <strong id="weather-wind-humidity">--</strong>
+                                <span class="weather-meta" id="weather-pressure">Pressure: --</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card weather-forecast-card">
+                        <div class="weather-forecast-header">
+                            <h3>24 Hour Weather Forecast</h3>
+                            <p id="weather-summary">Forecast is loading...</p>
+                        </div>
+                        <div class="weather-forecast-list" id="weather-forecast-list">
+                            <div class="weather-empty">Weather forecast will appear here.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container" data-user-only="true">
+                    <div class="chart">
+                        <h3>Soil Moisture Trend</h3>
+                        <canvas id="soilChart"></canvas>
+                    </div>
+                    <div class="chart">
+                        <h3>Temperature & Humidity</h3>
+                        <canvas id="tempChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="alert-box" id="alert-box">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Real-time data updates every 5 seconds</span>
+                </div>
+            </section>
+
+            <!-- Sensors Section -->
+            <section id="sensors" class="section" data-user-only="true">
+                <div class="section-header">
+                    <h1>Sensor Data</h1>
+                </div>
+
+                <div class="sensor-stats">
+                    <div class="stat-item">
+                        <h4>Average Soil Moisture</h4>
+                        <p id="avg-soil">--</p>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Average Temperature</h4>
+                        <p id="avg-temp">--</p>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Average Humidity</h4>
+                        <p id="avg-humidity">--</p>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Average pH</h4>
+                        <p id="avg-ph">--</p>
+                    </div>
+                </div>
+
+                <div class="data-table">
+                    <h3>Sensor History</h3>
+                    <table id="sensor-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Soil Moisture</th>
+                                <th>Temperature</th>
+                                <th>Humidity</th>
+                                <th>pH</th>
+                                <th>NPK</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sensor-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Pump Control Section -->
+            <section id="pump" class="section" data-user-only="true">
+                <div class="section-header">
+                    <h1>Pump Control</h1>
+                </div>
+
+                <div class="pump-control">
+                    <div class="pump-status">
+                        <h3>Current Status</h3>
+                        <div class="status-indicator" id="pump-status">OFF</div>
+                    </div>
+
+                    <div class="pump-controls">
+                        <button id="pump-on-btn" class="btn btn-success">
+                            <i class="fas fa-toggle-on"></i> Turn ON
+                        </button>
+                        <button id="pump-off-btn" class="btn btn-danger">
+                            <i class="fas fa-toggle-off"></i> Turn OFF
+                        </button>
+                    </div>
+
+                    <div class="auto-control">
+                        <h3>Auto Control</h3>
+                        <label class="switch">
+                            <input type="checkbox" id="auto-control-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <p>Enable AI-based automatic irrigation</p>
+                    </div>
+                </div>
+
+                <div class="pump-history">
+                    <h3>Pump Activity</h3>
+                    <div id="pump-chart-container">
+                        <canvas id="pumpChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Predictions Section -->
+            <section id="predictions" class="section">
+                <div class="section-header">
+                    <h1>AI Predictions</h1>
+                </div>
+
+                <div class="predictions-grid">
+                    <div class="prediction-card">
+                        <h3>Irrigation Prediction</h3>
+                        <div class="prediction-result" id="irrigation-pred">
+                            <p class="pred-status">Analyzing...</p>
+                            <p class="pred-confidence">Confidence: --</p>
+                        </div>
+                        <div class="pred-details" id="irrigation-details"></div>
+                    </div>
+
+                    <div class="prediction-card">
+                        <h3>Fertilizer Recommendation</h3>
+                        <div class="prediction-result" id="fertilizer-pred">
+                            <p class="pred-status">Analyzing...</p>
+                            <p class="pred-recommendation">Recommendation: --</p>
+                        </div>
+                        <div class="pred-details" id="fertilizer-details"></div>
+                    </div>
+                </div>
+
+                <div class="npk-analysis">
+                    <h3>NPK Analysis</h3>
+                    <div class="npk-bars">
+                        <div class="npk-bar">
+                            <label>Nitrogen (N)</label>
+                            <div class="bar-bg">
+                                <div class="bar-fill" id="n-bar" style="width: 0%"></div>
+                            </div>
+                            <span id="n-value">0 ppm</span>
+                        </div>
+                        <div class="npk-bar">
+                            <label>Phosphorus (P)</label>
+                            <div class="bar-bg">
+                                <div class="bar-fill" id="p-bar" style="width: 0%"></div>
+                            </div>
+                            <span id="p-value">0 ppm</span>
+                        </div>
+                        <div class="npk-bar">
+                            <label>Potassium (K)</label>
+                            <div class="bar-bg">
+                                <div class="bar-fill" id="k-bar" style="width: 0%"></div>
+                            </div>
+                            <span id="k-value">0 ppm</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Map Section -->
+            <section id="map" class="section" data-admin-only="true">
+                <div class="section-header">
+                    <h1>Farm Locations</h1>
+                </div>
+                <div id="map-container"></div>
+            </section>
+
+            <!-- Admin Panel Section -->
+            <section id="admin" class="section" data-admin-only="true">
+                <div class="section-header">
+                    <h1>Admin Control Panel</h1>
+                </div>
+
+                <div class="admin-stats">
+                    <div class="stat-card">
+                        <h4>Total Users</h4>
+                        <p id="total-users">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Active Users</h4>
+                        <p id="active-users">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Paid Users</h4>
+                        <p id="paid-users">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Total Records</h4>
+                        <p id="total-records">0</p>
+                    </div>
+                </div>
+
+                <div class="admin-table">
+                    <h3>User Management</h3>
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
