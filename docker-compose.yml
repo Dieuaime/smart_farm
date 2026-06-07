@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: smart_farm_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: smart_farming
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/api/database.sql:/docker-entrypoint-initdb.d/database.sql
+
+  php:
+    image: php:8.1-apache
+    container_name: smart_farm_php
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - mysql
+    environment:
+      - DB_HOST=mysql
+      - DB_NAME=smart_farming
+      - DB_USER=root
+      - DB_PASS=root
+
+  ml_server:
+    build: ./backend/ml_model
+    container_name: smart_farm_ml
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+
+volumes:
+  mysql_data:
